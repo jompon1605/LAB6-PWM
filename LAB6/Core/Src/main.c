@@ -59,24 +59,16 @@ uint64_t _micro = 0;
 uint64_t TimeOutputLoop = 0;
 
 float ADCOutputConverted = 0;
-typedef struct
-{
-	ADC_ChannelConfTypeDef Config;
-	uint32_t Data;
-} ADCStructure;
-
-ADCStructure ADCChannel[2] = {0};
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_ADC1_Init(void);
 static void MX_TIM1_Init(void);
 static void MX_TIM3_Init(void);
 static void MX_TIM11_Init(void);
-static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
 uint64_t micros();
 /* USER CODE END PFP */
@@ -115,10 +107,10 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  MX_ADC1_Init();
   MX_TIM1_Init();
   MX_TIM3_Init();
   MX_TIM11_Init();
-  MX_ADC1_Init();
   /* USER CODE BEGIN 2 */
 	HAL_ADC_Start_IT(&hadc1);
 	HAL_TIM_Base_Start(&htim3);
@@ -226,8 +218,8 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ScanConvMode = DISABLE;
   hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
+  hadc1.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T3_TRGO;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc1.Init.NbrOfConversion = 1;
   hadc1.Init.DMAContinuousRequests = DISABLE;
@@ -240,7 +232,7 @@ static void MX_ADC1_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_0;
   sConfig.Rank = 1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_3CYCLES;
+  sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -359,7 +351,7 @@ static void MX_TIM3_Init(void)
   {
     Error_Handler();
   }
-  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
   {
@@ -470,26 +462,18 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-
 void Control_PWM()
 {
 	float Kp = 0.7 , Ki = 5 , Kd = 3;
 	static float Error , SumError ,PreError;
 
-	HAL_ADC_ConfigChannel(&hadc1, &ADCChannel[0].Config); // select channal
-	HAL_ADC_Start(&hadc1); // ADC sampling ,Convert
-	if(HAL_ADC_PollForConversion(&hadc1, 1) == HAL_OK) // Wait ADC
-	{
-		ADCChannel[0].Data = HAL_ADC_GetValue(&hadc1); // Get Value
-	}
-	HAL_ADC_Stop(&hadc1); // Stop
-	ADCOutputConverted = (((ADCChannel[0].Data * 3.3) / 4096) * 1000); // output
-
+	ADCOutputConverted = (((ADCFeedBack * 3.3) / 4096) * 1000);
 	Error = 1000 - ADCOutputConverted;
 	SumError += Error;
 	PWMOut = Kp*Error + Ki*SumError + Kd*(Error-PreError);
 	PreError = Error;
 }
+
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc) {
 	ADCFeedBack = HAL_ADC_GetValue(&hadc1);
 	ADCUpdateFlag = 1;
