@@ -461,10 +461,10 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+float Kp = 6 , Ki = 4 , Kd = 3;
 void Control_PWM()
 {
-	float Kp = 0.7 , Ki = 5 , Kd = 3;
+
 	static float Error , SumError ,PreError;
 
 	ADCOutputConverted = (((ADCFeedBack * 3.3) / 4096) * 1000);
