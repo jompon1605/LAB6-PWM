@@ -464,10 +464,9 @@ static void MX_GPIO_Init(void)
 float Kp = 6 , Ki = 4 , Kd = 3;
 void Control_PWM()
 {
-
 	static float Error , SumError ,PreError;
 
-	ADCOutputConverted = (((ADCFeedBack * 3.3) / 4096) * 1000);
+	ADCOutputConverted = (((ADCFeedBack * 3.3) / 4096) * 1000); //mV
 	Error = 1000 - ADCOutputConverted;
 	SumError += Error;
 	PWMOut = Kp*Error + Ki*SumError + Kd*(Error-PreError);
